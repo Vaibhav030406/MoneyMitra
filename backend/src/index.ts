@@ -14,6 +14,7 @@ import authRoutes from "./routes/auth.routes";
 import { passportAuthenticateJwt } from "./config/passport.config";
 import  userRoutes  from "./routes/user.routes";
 import transactionRoutes from "./routes/transaction.routes";
+import { initializeCrons } from "./crons";
 const BASE_PATH = Env.BASE_PATH || "/api/v1";
 
 const app = express();
@@ -42,10 +43,14 @@ app.get(
 app.use(`${BASE_PATH}/auth`, authRoutes);
 app.use(`${BASE_PATH}/user`, passportAuthenticateJwt, userRoutes);
 app.use(`${BASE_PATH}/transactions`, passportAuthenticateJwt, transactionRoutes);
+app.use(`${BASE_PATH}/report`, passportAuthenticateJwt, reportRoutes);
 
 app.use(errorHandler);
 
 app.listen(Env.PORT, async () => {
   await connectDatabase();
+   if (Env.NODE_ENV === "development") {
+    await initializeCrons();
+  }
   console.log(`🚀 Server running on port ${Env.PORT}`);
 });

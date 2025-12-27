@@ -7,14 +7,19 @@ import {
   duplicateTransactionController, 
   getAllTransactionController,
   getTransactionByIdController, 
-  updateTransactionController 
+  updateTransactionController,
+  scanReceiptController
 } from "../controllers/transaction.controller";
 import { upload } from "../config/cloudinary.config";
-import axios from "axios";
-import { Env } from "../config/env.config";
 
 const transactionRoutes = Router();
 
+// Receipt scanning - Must be before other routes to avoid conflicts
+transactionRoutes.post(
+  "/scan-receipt",
+  upload.single("receipt"),
+  scanReceiptController
+);
 
 // Transaction CRUD operations
 transactionRoutes.post("/create", createTransactionController);

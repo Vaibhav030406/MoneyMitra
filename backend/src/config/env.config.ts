@@ -11,7 +11,9 @@ const envconfig = () => ({
   JWT_REFRESH_SECRET: getEnv("JWT_REFRESH_SECRET", "your_jwt_refresh_secret"),
   JWT_REFRESH_EXPIRES_IN: getEnv("JWT_REFRESH_EXPIRES_IN", "30d"),
 
-  GEMINI_API_KEY: getEnv("GEMINI_API_KEY", ""),
+  OPEN_ROUTER_API_KEY: getEnv("OPEN_ROUTER_API_KEY"),
+  SITE_URL: getEnv("SITE_URL", "http://localhost:8000"),
+  SITE_NAME: getEnv("SITE_NAME", "MoneyMitra"),
   CLOUDINARY_CLOUD_NAME: getEnv("CLOUDINARY_CLOUD_NAME", ""),
   CLOUDINARY_API_KEY: getEnv("CLOUDINARY_API_KEY", ""),
   CLOUDINARY_API_SECRET: getEnv("CLOUDINARY_API_SECRET", ""),

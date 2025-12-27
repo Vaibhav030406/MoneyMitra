@@ -2,7 +2,6 @@ import axios from "axios";
 import TransactionModel, { TransactionTypeEnum } from "../models/transaction.model";
 import { BadRequestException, NotFoundException } from "../utils/app-error";
 import { calculateNextOccurrence } from "../utils/helper";
-import { receiptPrompt } from "../utils/prompt";
 import { CreateTransactionType, UpdateTransactionType } from "../validators/transaction.validator";
 import { Env } from "../config/env.config";
 
@@ -255,3 +254,124 @@ export const bulkTransactionService = async (
   }
 };
 
+export const scanReceiptService = async (
+  file: Express.Multer.File | undefined
+) => {
+  if (!file) throw new BadRequestException("No file uploaded");
+  
+  try {
+    if (!file.path) throw new BadRequestException("Failed to upload file");
+    
+    console.log("Processing receipt:", file.path);
+    
+    // Fetch the image from Cloudinary
+    const responseData = await axios.get(file.path, {
+      responseType: "arraybuffer",
+    });
+    
+    const base64String = Buffer.from(responseData.data).toString("base64");
+    if (!base64String) throw new BadRequestException("Could not process file");
+    
+    // Create the image URL for OpenRouter
+    const imageUrl = `data:${file.mimetype};base64,${base64String}`;
+    
+    // Call OpenRouter API
+    const completion = await axios.post(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        model: "openai/gpt-4o",
+        max_tokens: 1000,
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: `Analyze this receipt image and extract the following information in JSON format:
+{
+  "title": "Brief description of the purchase",
+  "amount": number (total amount paid),
+  "date": "ISO 8601 date string (YYYY-MM-DD)",
+  "description": "Additional details about the transaction",
+  "category": "Category of expense (e.g., Food, Transportation, Shopping, etc.)",
+  "paymentMethod": "One of: CASH, CARD, BANK_TRANSFER, MOBILE_PAYMENT, AUTO_DEBIT, OTHER",
+  "type": "EXPENSE or INCOME"
+}
+
+Important:
+- Extract the total amount paid
+- Parse the date from the receipt
+- Infer an appropriate category
+- Default type to "EXPENSE" unless clearly an income receipt
+- Default paymentMethod to "CARD" if not clear
+- Provide a brief title summarizing the purchase
+
+Return ONLY valid JSON, no additional text.`
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: imageUrl
+                }
+              }
+            ]
+          }
+        ],
+        temperature: 0,
+        response_format: { type: "json_object" }
+      },
+      {
+        headers: {
+          "Authorization": `Bearer ${Env.OPEN_ROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": Env.SITE_URL || "http://localhost:3000",
+          "X-Title": Env.SITE_NAME || "Receipt Scanner"
+        }
+      }
+    );
+    
+    const responseText = completion.data.choices[0].message.content;
+    if (!responseText) {
+      return {
+        error: "Could not read receipt content"
+      };
+    }
+    
+    // Parse the JSON response
+    const cleanedText = responseText.replace(/```(?:json)?\n?/g, "").trim();
+    const data = JSON.parse(cleanedText);
+    
+    // Validate required fields
+    if (!data.amount || !data.date) {
+      return { 
+        error: "Receipt missing required information (amount or date)" 
+      };
+    }
+    
+    return {
+      title: data.title || "Receipt",
+      amount: Number(data.amount),
+      date: data.date,
+      description: data.description || "",
+      category: data.category || "Other",
+      paymentMethod: data.paymentMethod || "CARD",
+      type: data.type || "EXPENSE",
+      receiptUrl: file.path,
+    };
+    
+  } catch (error: any) {
+    console.error("Receipt scanning error:", error.response?.data || error.message);
+    
+    if (error.response?.status === 401) {
+      return { error: "Invalid API key for receipt scanning service" };
+    }
+    
+    if (error.response?.status === 429) {
+      return { error: "Rate limit exceeded. Please try again later." };
+    }
+    
+    return { 
+      error: "Receipt scanning service unavailable. Please try again." 
+    };
+  }
+};
