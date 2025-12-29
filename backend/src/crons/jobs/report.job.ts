@@ -1,5 +1,5 @@
 import { endOfMonth, format, startOfMonth, subMonths } from "date-fns";
-import ReportSettingModel from "../../models/report-setting.model";
+import ReportSettingModel from "../../models/report-settings.model";
 import { UserDocument } from "../../models/user.model";
 import mongoose from "mongoose";
 import { generateReportService } from "../../services/report.service";

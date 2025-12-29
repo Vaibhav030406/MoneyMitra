@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
-import ReportSettingModel from "../models/report-setting.model";
+import axios from "axios";
+import ReportSettingModel from "../models/report-settings.model";
 import ReportModel from "../models/report.model";
 import TransactionModel, {
   TransactionTypeEnum,
@@ -9,9 +10,8 @@ import { calulateNextReportDate } from "../utils/helper";
 import { UpdateReportSettingType } from "../validators/report.validator";
 import { convertToDollarUnit } from "../utils/format-currency";
 import { format } from "date-fns";
-import { genAI, genAIModel } from "../config/google-ai.config";
-import { createUserContent } from "@google/genai";
 import { reportInsightPrompt } from "../utils/prompt";
+import { Env } from "../config/env.config";
 
 export const getAllReportsService = async (
   userId: string,
@@ -56,9 +56,6 @@ export const updateReportSettingService = async (
   });
   if (!existingReportSetting)
     throw new NotFoundException("Report setting not found");
-
-  //   const frequency =
-  //     existingReportSetting.frequency || ReportFrequencyEnum.MONTHLY;
 
   if (isEnabled) {
     const currentNextReportDate = existingReportSetting.nextReportDate;
@@ -237,22 +234,46 @@ async function generateInsightsAI({
       periodLabel,
     });
 
-    const result = await genAI.models.generateContent({
-      model: genAIModel,
-      contents: [createUserContent([prompt])],
-      config: {
-        responseMimeType: "application/json",
+    // Call OpenRouter API
+    const completion = await axios.post(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        model: "openai/gpt-4o-mini", // Using mini for cost efficiency
+        max_tokens: 1500,
+        messages: [
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+        response_format: { type: "json_object" }
       },
-    });
+      {
+        headers: {
+          "Authorization": `Bearer ${Env.OPEN_ROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": Env.SITE_URL || "http://localhost:3000",
+          "X-Title": Env.SITE_NAME || "Financial Report Generator"
+        }
+      }
+    );
 
-    const response = result.text;
-    const cleanedText = response?.replace(/```(?:json)?\n?/g, "").trim();
+    const responseText = completion.data.choices[0].message.content;
+    if (!responseText) {
+      console.log("No insights generated");
+      return [];
+    }
 
-    if (!cleanedText) return [];
-
+    // Parse the JSON response
+    const cleanedText = responseText.replace(/```(?:json)?\n?/g, "").trim();
     const data = JSON.parse(cleanedText);
+
     return data;
-  } catch (error) {
+  } catch (error: any) {
+    console.error("AI Insights generation error:", error.response?.data || error.message);
+    
+    // Return empty array instead of throwing to prevent report generation failure
     return [];
   }
 }

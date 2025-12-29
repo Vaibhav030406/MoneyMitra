@@ -31,3 +31,75 @@ Example valid response:
   "type": "EXPENSE"
 }
 `;
+
+interface ReportInsightParams {
+  totalIncome: number;
+  totalExpenses: number;
+  availableBalance: number;
+  savingsRate: number;
+  categories: Record<string, { amount: number; percentage: number }>;
+  periodLabel: string;
+}
+
+export const reportInsightPrompt = ({
+  totalIncome,
+  totalExpenses,
+  availableBalance,
+  savingsRate,
+  categories,
+  periodLabel,
+}: ReportInsightParams): string => {
+  const categoriesText = Object.entries(categories)
+    .map(([name, data]) => `- ${name}: $${data.amount} (${data.percentage}%)`)
+    .join('\n');
+
+  return `You are a financial advisor analyzing a user's spending report for ${periodLabel}.
+
+Financial Summary:
+- Total Income: $${totalIncome}
+- Total Expenses: $${totalExpenses}
+- Available Balance: $${availableBalance}
+- Savings Rate: ${savingsRate}%
+
+Top Spending Categories:
+${categoriesText || 'No spending data available'}
+
+Generate 3-5 personalized financial insights in JSON format as an array of objects:
+[
+  {
+    "title": "Brief insight title (max 60 characters)",
+    "description": "Detailed explanation with actionable advice (max 200 characters)",
+    "type": "positive" | "warning" | "neutral"
+  }
+]
+
+Guidelines:
+1. Provide actionable, specific advice based on the data
+2. If savings rate is negative or low (<10%), suggest ways to reduce spending
+3. If savings rate is good (>20%), provide encouragement and investment suggestions
+4. Highlight unusual spending patterns in top categories
+5. Be encouraging but realistic
+6. Use "type": "positive" for good habits, "warning" for concerns, "neutral" for general advice
+7. Keep insights concise and practical
+
+Example response:
+[
+  {
+    "title": "Great Savings Performance! 🎯",
+    "description": "Your 25% savings rate is excellent! Consider investing surplus in diversified index funds or high-yield savings accounts.",
+    "type": "positive"
+  },
+  {
+    "title": "Food & Dining Spending High",
+    "description": "Food costs are 35% of expenses. Try meal prepping on Sundays to reduce dining out and save $200-300 monthly.",
+    "type": "warning"
+  },
+  {
+    "title": "Build Emergency Fund",
+    "description": "Aim to save 3-6 months of expenses. Start by automating $100 weekly transfers to a separate savings account.",
+    "type": "neutral"
+  }
+]
+
+Return ONLY valid JSON array, no additional text or markdown.`;
+};

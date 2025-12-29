@@ -1,5 +1,6 @@
 import UserModel from "../models/user.model";
 import { NotFoundException } from "../utils/app-error";
+import { UpdateUserType } from "../validators/user.validator";
 //import { UpdateUserType } from "../validators/user.validator";
 
 export const findByIdUserService = async (userId: string) => {
@@ -7,7 +8,7 @@ export const findByIdUserService = async (userId: string) => {
   return user?.omitPassword();
 };
 
-/*export const updateUserService = async (
+export const updateUserService = async (
   userId: string,
   body: UpdateUserType,
   profilePic?: Express.Multer.File
@@ -26,4 +27,4 @@ export const findByIdUserService = async (userId: string) => {
   await user.save();
 
   return user.omitPassword();
-};*/
+};

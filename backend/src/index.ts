@@ -15,7 +15,9 @@ import { passportAuthenticateJwt } from "./config/passport.config";
 import  userRoutes  from "./routes/user.routes";
 import transactionRoutes from "./routes/transaction.routes";
 import { initializeCrons } from "./crons";
-const BASE_PATH = Env.BASE_PATH || "/api/v1";
+import reportRoutes from "./routes/report.routes";
+import analyticsRoutes from "./routes/analytics.routes";
+const BASE_PATH = Env.BASE_PATH || "/api";
 
 const app = express();
 
@@ -44,6 +46,7 @@ app.use(`${BASE_PATH}/auth`, authRoutes);
 app.use(`${BASE_PATH}/user`, passportAuthenticateJwt, userRoutes);
 app.use(`${BASE_PATH}/transactions`, passportAuthenticateJwt, transactionRoutes);
 app.use(`${BASE_PATH}/report`, passportAuthenticateJwt, reportRoutes);
+app.use(`${BASE_PATH}/analytics`, passportAuthenticateJwt, analyticsRoutes);
 
 app.use(errorHandler);
 

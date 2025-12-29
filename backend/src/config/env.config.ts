@@ -18,6 +18,8 @@ const envconfig = () => ({
   CLOUDINARY_API_KEY: getEnv("CLOUDINARY_API_KEY", ""),
   CLOUDINARY_API_SECRET: getEnv("CLOUDINARY_API_SECRET", ""),
   CRON_SECRET: getEnv("CRON_SECRET", "your_cron_secret"),
+    RESEND_API_KEY: getEnv("RESEND_API_KEY"),
+  RESEND_MAILER_SENDER: getEnv("RESEND_MAILER_SENDER", ""),
   FRONTEND_URL: getEnv("FRONTEND_URL", "http://localhost:5173"),
 });
 
